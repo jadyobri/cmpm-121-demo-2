@@ -41,7 +41,11 @@ h1 {
   padding: 2rem;
   text-align: center;
 }
-
+canvas {
+  border: 1px solid black;
+  border-radius: 8px;
+  box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.5);
+}
 .logo {
   height: 6em;
   padding: 1.5em;
