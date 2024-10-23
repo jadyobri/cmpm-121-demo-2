@@ -9,7 +9,6 @@ globalThis.onload = () => {
     const canvas = document.getElementById('myCanvas') as HTMLCanvasElement;
     //canvas.style.position(50, 50);
     const clearButton = document.getElementById('clearButton') as HTMLButtonElement;
-
     if (appTitle) {
         appTitle.textContent = "My Awesome App";
     }
@@ -18,6 +17,8 @@ globalThis.onload = () => {
         let isDrawing = false;
         let currentLine: { x: number; y: number }[] = [];
         let lines: { x: number; y: number }[][] = [];
+        let redoStack: { x: number; y: number }[][] = [];
+       // const undoLines: { x: number; y: number }[][] = [];
 
         const drawingChangedEvent = new Event('drawing-changed');
 
@@ -26,19 +27,17 @@ globalThis.onload = () => {
             isDrawing = true;
             currentLine = [];  // Start a new line
             addPointToLine(event);
-            // if (ctx) {
-            //     ctx.beginPath();
-            //     ctx.moveTo(event.offsetX, event.offsetY);
-            // }
+            redoStack.splice(0, redoStack.length);
+
         });
 
         // Draw line as the mouse moves
         canvas.addEventListener('mousemove', (event) => {
             if (isDrawing && ctx) {
-                // ctx.lineTo(event.offsetX, event.offsetY);
-                // ctx.stroke();
+
                 addPointToLine(event);
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
+                
             }
         });
          // Stop drawing when mouse is released
@@ -48,9 +47,39 @@ globalThis.onload = () => {
                 lines.push(currentLine);  // Save the line
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
             }
-            // if (ctx) {
-            //     ctx.closePath();
-            // }
+
+        });
+        //Help from the https://quant-paint.glitch.me/paint1.html
+        const undoButton = document.createElement("button");
+        undoButton.innerHTML = "undo";
+        document.body.appendChild(undoButton);
+        //Help also from generative AI
+        undoButton.addEventListener("click", () => {
+            if(lines.length > 0){
+                const lastLine = lines.pop();
+            if(lastLine){
+                redoStack.push(lastLine);
+                currentLine = [];
+            }
+            canvas.dispatchEvent(drawingChangedEvent);
+            }
+        });
+        
+
+        const redoButton = document.createElement('button');
+        redoButton.innerHTML = "redo";
+        document.body.appendChild(redoButton);
+        redoButton.addEventListener("click", () => {
+            if(redoStack.length > 0){
+                const lastUndoneLine = redoStack.pop();
+                if(lastUndoneLine){
+                    lines.push(lastUndoneLine);
+                }
+                canvas.dispatchEvent(drawingChangedEvent);
+                //lines.push(redoStack[redoStack.length-1]);
+                //redoStack[redoStack.length-1].pop();
+                //drawLine(lines[lines.length-1])
+            }
         });
 
         // Stop drawing if the mouse leaves the canvas
@@ -61,23 +90,13 @@ globalThis.onload = () => {
         // Clear the canvas when the clear button is clicked
         if (clearButton) {
             clearButton.addEventListener('click', () => {
-                // if (ctx) {
-                //     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                //    // ctx.setPosition();
-                // }
                 lines = [];
                 currentLine = [];
+                redoStack = [];
                 if (ctx) {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
-
-                //lines.splice(0, lines.length) // Clear the stored lines
-                //lines[0] = { x: 0; y: 0; }
-
-
-                //canvas.dispatchEvent(drawingChangedEvent);
                 canvas.dispatchEvent(drawingChangedEvent);  // Trigger drawing change
-                //drawLine(lines[0]);
             });
         }
         const addPointToLine = (event: MouseEvent) => {
@@ -88,23 +107,7 @@ globalThis.onload = () => {
             });
         };
         canvas.addEventListener('drawing-changed', () => {
-            // if (ctx && line.length > 1) {
-            //     // Clear the canvas
-            //     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            //     // Redraw all the saved lines
-            //     for (const line of lines) {
-            //         if (line.length > 1) {
-            //             ctx.beginPath();
-            //             ctx.moveTo(line[0].x, line[0].y);
-            //             for (let i = 1; i < line.length; i++) {
-            //                 ctx.lineTo(line[i].x, line[i].y);
-            //             }
-            //             ctx.stroke();
-            //             ctx.closePath();
-            //         }
-            //     }
-            // }
             if (ctx) {
                 // Clear the canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -128,24 +131,10 @@ globalThis.onload = () => {
                     ctx.lineTo(line[i].x, line[i].y);
                 }
                 ctx.stroke();
-                //ctx.closePath();
             }
         };
     }
-    // function redraw() {
-    //     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    //     for (const line of lines) {
-    //       if (line.length > 1) {
-    //         ctx.beginPath();
-    //         const { x, y } = line[0];
-    //         ctx.moveTo(x, y);
-    //         for (const { x, y } of line) {
-    //           ctx.lineTo(x, y);
-    //         }
-    //         ctx.stroke();
-    //       }
-    //     }
-    //   }
+
 };
 
 document.title = APP_NAME;
