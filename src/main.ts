@@ -3,6 +3,29 @@ import "./style.css";
 const APP_NAME = "Project 2";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
+class Liner{
+    private points: {x: number; y: number}[];
+
+    constructor(startX: number, startY: number){
+        this.points = [{x: startX, y: startY}];
+    }
+
+    drag(x: number, y:number){
+        this.points.push({x, y});
+    }
+
+    display(ctx: CanvasRenderingContext2D){
+        if(this.points.length > 0){
+            ctx.beginPath();
+            ctx.moveTo(this.points[0].x, this.points[0].y);
+            for(const line of this.points){
+                ctx.lineTo(line.x, line.y);
+            }
+            ctx.stroke();
+        }
+    }
+}
+
 //Used help from generative AI in the process
 globalThis.onload = () => {
     const appTitle = document.getElementById('app-title');
@@ -15,38 +38,49 @@ globalThis.onload = () => {
     if (canvas) {
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
-        let currentLine: { x: number; y: number }[] = [];
-        let lines: { x: number; y: number }[][] = [];
-        let redoStack: { x: number; y: number }[][] = [];
+        let currentLine: Liner | null = null;//{ x: number; y: number }[] = [];
+        let lines: Liner[] = [];//{ x: number; y: number }[][] = [];
+        let redoStack: Liner[] = [];//{ x: number; y: number }[][] = [];
        // const undoLines: { x: number; y: number }[][] = [];
 
         const drawingChangedEvent = new Event('drawing-changed');
 
         // Start drawing
         canvas.addEventListener('mousedown', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const startX = event.clientX - rect.left;
+            const startY = event.clientY - rect.top;
             isDrawing = true;
-            currentLine = [];  // Start a new line
-            addPointToLine(event);
+            // const startX = event.clientX - rect.left;
+            // const startY = event.clientY - rect.top;
+            currentLine = new Liner(startX, startY);  // Start a new line
+            //addPointToLine(event);
             redoStack.splice(0, redoStack.length);
+            canvas.dispatchEvent(drawingChangedEvent);
 
         });
 
         // Draw line as the mouse moves
         canvas.addEventListener('mousemove', (event) => {
-            if (isDrawing && ctx) {
-
-                addPointToLine(event);
+            if (isDrawing && currentLine) {
+                const rect = canvas.getBoundingClientRect();
+                const newX = event.clientX - rect.left;
+                const newY = event.clientY - rect.top;
+                currentLine.drag(newX, newY);
+                //addPointToLine(event);
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
                 
             }
         });
          // Stop drawing when mouse is released
          canvas.addEventListener('mouseup', () => {
-            isDrawing = false;
-            if (currentLine.length > 0) {
+            //isDrawing = false;
+            if (isDrawing && currentLine) {
                 lines.push(currentLine);  // Save the line
+                currentLine = null;
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
             }
+            isDrawing = false;
 
         });
         //Help from the https://quant-paint.glitch.me/paint1.html
@@ -59,7 +93,7 @@ globalThis.onload = () => {
                 const lastLine = lines.pop();
             if(lastLine){
                 redoStack.push(lastLine);
-                currentLine = [];
+                //currentLine = [];
             }
             canvas.dispatchEvent(drawingChangedEvent);
             }
@@ -91,7 +125,7 @@ globalThis.onload = () => {
         if (clearButton) {
             clearButton.addEventListener('click', () => {
                 lines = [];
-                currentLine = [];
+                //currentLine = [];
                 redoStack = [];
                 if (ctx) {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -99,13 +133,13 @@ globalThis.onload = () => {
                 canvas.dispatchEvent(drawingChangedEvent);  // Trigger drawing change
             });
         }
-        const addPointToLine = (event: MouseEvent) => {
-            const rect = canvas.getBoundingClientRect();
-            currentLine.push({
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top,
-            });
-        };
+        // const addPointToLine = (event: MouseEvent) => {
+        //     const rect = canvas.getBoundingClientRect();
+        //     currentLine.push({
+        //         x: event.clientX - rect.left,
+        //         y: event.clientY - rect.top,
+        //     });
+        // };
         canvas.addEventListener('drawing-changed', () => {
 
             if (ctx) {
@@ -114,25 +148,27 @@ globalThis.onload = () => {
 
                 // Redraw all the saved lines
                 for (const line of lines) {
-                    drawLine(line);
+                    line.display(ctx);
+                    //drawLine(line);
                 }
 
                 // Draw the current line if it's being drawn
-                if (currentLine.length > 0) {
-                    drawLine(currentLine);
+                if (currentLine) {
+                    currentLine.display(ctx);
+                    //drawLine(currentLine);
                 }
             }
         });
-        const drawLine = (line: { x: number; y: number }[]) => {
-            if (line.length > 0 && ctx) {
-                ctx.beginPath();
-                ctx.moveTo(line[0].x, line[0].y);
-                for (let i = 1; i < line.length; i++) {
-                    ctx.lineTo(line[i].x, line[i].y);
-                }
-                ctx.stroke();
-            }
-        };
+        // const drawLine = (line: { x: number; y: number }[]) => {
+        //     if (line.length > 0 && ctx) {
+        //         ctx.beginPath();
+        //         ctx.moveTo(line[0].x, line[0].y);
+        //         for (let i = 1; i < line.length; i++) {
+        //             ctx.lineTo(line[i].x, line[i].y);
+        //         }
+        //         ctx.stroke();
+        //     }
+        // };
     }
 
 };
