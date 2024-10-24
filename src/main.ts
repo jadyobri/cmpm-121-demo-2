@@ -3,15 +3,19 @@ import "./style.css";
 const APP_NAME = "Project 2";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
+//Used help from generative AI
 class Liner{
     private points: {x: number; y: number}[];
+    private thickn: number;
 
-    constructor(startX: number, startY: number){
+    constructor(startX: number, startY: number, thickn:number){
         this.points = [{x: startX, y: startY}];
+        this.thickn = thickn;
     }
 
     drag(x: number, y:number){
         this.points.push({x, y});
+       // this.thickn = thickn;
     }
 
     display(ctx: CanvasRenderingContext2D){
@@ -21,6 +25,7 @@ class Liner{
             for(const line of this.points){
                 ctx.lineTo(line.x, line.y);
             }
+            ctx.lineWidth = this.thickn;
             ctx.stroke();
         }
     }
@@ -31,11 +36,16 @@ globalThis.onload = () => {
     const appTitle = document.getElementById('app-title');
     const canvas = document.getElementById('myCanvas') as HTMLCanvasElement;
     //canvas.style.position(50, 50);
+    const thinTool = document.getElementById('thinTool') as HTMLButtonElement;
+    const thickTool = document.getElementById('thickTool') as HTMLButtonElement;
+   
+
     const clearButton = document.getElementById('clearButton') as HTMLButtonElement;
     if (appTitle) {
         appTitle.textContent = "My Awesome App";
     }
     if (canvas) {
+        let currentToolThickness = 2;
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
         let currentLine: Liner | null = null;//{ x: number; y: number }[] = [];
@@ -53,7 +63,7 @@ globalThis.onload = () => {
             isDrawing = true;
             // const startX = event.clientX - rect.left;
             // const startY = event.clientY - rect.top;
-            currentLine = new Liner(startX, startY);  // Start a new line
+            currentLine = new Liner(startX, startY, currentToolThickness);  // Start a new line
             //addPointToLine(event);
             redoStack.splice(0, redoStack.length);
             canvas.dispatchEvent(drawingChangedEvent);
@@ -72,6 +82,21 @@ globalThis.onload = () => {
                 
             }
         });
+        const updateToolSelection = (selectedTool: HTMLButtonElement) => {
+            thinTool.classList.remove('selectedTool');
+            thickTool.classList.remove('selectedTool');
+            selectedTool.classList.add('selectedTool');
+        };
+        updateToolSelection(thinTool);
+        thinTool.addEventListener('click', () => {
+            currentToolThickness = 2; // Thin marker
+            updateToolSelection(thinTool);
+        });
+    
+        thickTool.addEventListener('click', () => {
+            currentToolThickness = 6; // Thick marker
+            updateToolSelection(thickTool);
+        });
          // Stop drawing when mouse is released
          canvas.addEventListener('mouseup', () => {
             //isDrawing = false;
@@ -84,8 +109,8 @@ globalThis.onload = () => {
 
         });
         //Help from the https://quant-paint.glitch.me/paint1.html
-        const undoButton = document.createElement("button");
-        undoButton.innerHTML = "undo";
+        const undoButton = document.getElementById("undoButton") as HTMLButtonElement;
+       // undoButton.innerHTML = "undo";
         document.body.appendChild(undoButton);
         //Help also from generative AI
         undoButton.addEventListener("click", () => {
@@ -100,7 +125,7 @@ globalThis.onload = () => {
         });
         
 
-        const redoButton = document.createElement('button');
+        const redoButton = document.getElementById('redoButton') as HTMLButtonElement;
         redoButton.innerHTML = "redo";
         document.body.appendChild(redoButton);
         redoButton.addEventListener("click", () => {

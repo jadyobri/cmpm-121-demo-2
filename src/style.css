@@ -87,6 +87,10 @@ button {
 button:hover {
   border-color: #646cff;
 }
+.selectedTool {
+  background-color: #ddd;
+  border: 2px solid #333;
+}
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
