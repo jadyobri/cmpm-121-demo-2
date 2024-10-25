@@ -2,7 +2,51 @@ import "./style.css";
 
 const APP_NAME = "Project 2";
 const app = document.querySelector<HTMLDivElement>("#app")!;
+class StickerPreview {
+    private x: number;
+    private y: number;
+    private emoji: string;
 
+    constructor(emoji: string) {
+        this.x = 0;
+        this.y = 0;
+        this.emoji = emoji;
+    }
+
+    // Update preview position
+    move(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    // Draw preview of the sticker at the mouse position
+    draw(ctx: CanvasRenderingContext2D) {
+        ctx.font = "24px serif";
+        ctx.fillText(this.emoji, this.x, this.y);
+    }
+}
+
+class Sticker {
+    private x: number;
+    private y: number;
+    private emoji: string;
+
+    constructor(x: number, y: number, emoji: string) {
+        this.x = x;
+        this.y = y;
+        this.emoji = emoji;
+    }
+    drag(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    // Display the sticker on the canvas
+    display(ctx: CanvasRenderingContext2D) {
+        ctx.font = "24px serif";
+        ctx.fillText(this.emoji, this.x, this.y);
+    }
+}
 //used generative ai for help
 class ToolPreview {
     private x: number;
@@ -68,7 +112,9 @@ globalThis.onload = () => {
     //canvas.style.position(50, 50);
     const thinTool = document.getElementById('thinTool') as HTMLButtonElement;
     const thickTool = document.getElementById('thickTool') as HTMLButtonElement;
-   
+    const checkSticker = document.getElementById('checkSticker') as HTMLButtonElement;
+    const fireSticker = document.getElementById('fireSticker') as HTMLButtonElement;
+    const pumpkinSticker = document.getElementById('pumpkinSticker') as HTMLButtonElement;
 
     const clearButton = document.getElementById('clearButton') as HTMLButtonElement;
     if (appTitle) {
@@ -79,11 +125,12 @@ globalThis.onload = () => {
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
         let currentLine: Liner | null = null;//{ x: number; y: number }[] = [];
-        let lines: Liner[] = [];//{ x: number; y: number }[][] = [];
-        let redoStack: Liner[] = [];//{ x: number; y: number }[][] = [];
+        let lines: (Liner | Sticker)[] = [];//{ x: number; y: number }[][] = [];
+        let redoStack: (Liner | Sticker)[] = [];//{ x: number; y: number }[][] = [];
        // const undoLines: { x: number; y: number }[][] = [];
        let toolPreview: ToolPreview | null = new ToolPreview(currentToolThickness); // Initialize tool preview
-
+       let stickerPreview: StickerPreview | null = null;
+       let selectedSticker: string | null = null;
         const drawingChangedEvent = new Event('drawing-changed');
         const toolMovedEvent = new Event('tool-moved');
         // const updateToolSelection = (selectedTool: HTMLButtonElement) => {
@@ -106,6 +153,21 @@ globalThis.onload = () => {
             redoStack.splice(0, redoStack.length);
             toolPreview = null;
             canvas.dispatchEvent(drawingChangedEvent);
+            if (selectedSticker && stickerPreview) {
+                // Place a sticker
+                const sticker = new Sticker(startX, startY, selectedSticker);
+                lines.push(sticker);
+                redoStack = [];
+                stickerPreview = new StickerPreview(selectedSticker);
+                canvas.dispatchEvent(drawingChangedEvent);
+            } else {
+                // Draw a line
+                isDrawing = true;
+                currentLine = new Liner(startX, startY, currentToolThickness);
+                redoStack = [];
+                toolPreview = null;
+                canvas.dispatchEvent(drawingChangedEvent);
+            }
 
         });
 
@@ -121,27 +183,46 @@ globalThis.onload = () => {
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
                 
             } else if (!isDrawing && toolPreview) {
-                toolPreview.move(newX, newY); // Update tool preview position
+                if(toolPreview) toolPreview.move(newX, newY); // Update tool preview position
+                if(stickerPreview) stickerPreview.move(newX, newY);
                 canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event
             }
         });
         const updateToolSelection = (selectedTool: HTMLButtonElement) => {
-            thinTool.classList.remove('selectedTool');
-            thickTool.classList.remove('selectedTool');
+            [thinTool, thickTool, checkSticker, fireSticker, pumpkinSticker].forEach(button => {
+                button.classList.remove('selectedTool');
+            });
+            // thinTool.classList.remove('selectedTool');
+            // thickTool.classList.remove('selectedTool');
             selectedTool.classList.add('selectedTool');
         };
         updateToolSelection(thinTool);
         thinTool.addEventListener('click', () => {
             currentToolThickness = 2; // Thin marker
             toolPreview = new ToolPreview(currentToolThickness); // Update preview thickness
+            stickerPreview = null;
+            selectedSticker = null;
             updateToolSelection(thinTool);
         });
-    
+        
         thickTool.addEventListener('click', () => {
             currentToolThickness = 6; // Thick marker
             toolPreview = new ToolPreview(currentToolThickness); // Update preview thickness
+            stickerPreview = null;
+            selectedSticker = null;    
             updateToolSelection(thickTool);
         });
+        const selectSticker = (emoji: string, button: HTMLButtonElement) => {
+            selectedSticker = emoji;
+            stickerPreview = new StickerPreview(emoji);
+            toolPreview = null;
+            updateToolSelection(button);
+            canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event to update preview
+        };
+        checkSticker.addEventListener('click', () => selectSticker("✅", checkSticker));
+        fireSticker.addEventListener('click', () => selectSticker("🔥", fireSticker));
+        pumpkinSticker.addEventListener('click', () => selectSticker("🎃", pumpkinSticker));
+
          // Stop drawing when mouse is released
          canvas.addEventListener('mouseup', () => {
             //isDrawing = false;
@@ -248,6 +329,9 @@ globalThis.onload = () => {
                 // Draw the tool preview if not drawing
                 if (!isDrawing && toolPreview) {
                     toolPreview.draw(ctx);
+                }
+                if(!isDrawing && stickerPreview){
+                    stickerPreview.draw(ctx);
                 }
             }
         };
