@@ -3,6 +3,36 @@ import "./style.css";
 const APP_NAME = "Project 2";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
+//used generative ai for help
+class ToolPreview {
+    private x: number;
+    private y: number;
+    private thickness: number;
+
+    constructor(thickness: number) {
+        this.x = 0;
+        this.y = 0;
+        this.thickness = thickness;
+    }
+
+    // Update the preview's position based on mouse movement
+    move(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    // Render the preview circle on the canvas
+    draw(ctx: CanvasRenderingContext2D) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.thickness / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; // Optional: use a translucent color for preview
+        ctx.lineWidth = 1;
+        ctx.stroke();
+       // ctx.closePath();
+    }
+}
+
+
 //Used help from generative AI
 class Liner{
     private points: {x: number; y: number}[];
@@ -52,9 +82,17 @@ globalThis.onload = () => {
         let lines: Liner[] = [];//{ x: number; y: number }[][] = [];
         let redoStack: Liner[] = [];//{ x: number; y: number }[][] = [];
        // const undoLines: { x: number; y: number }[][] = [];
+       let toolPreview: ToolPreview | null = new ToolPreview(currentToolThickness); // Initialize tool preview
 
         const drawingChangedEvent = new Event('drawing-changed');
+        const toolMovedEvent = new Event('tool-moved');
+        // const updateToolSelection = (selectedTool: HTMLButtonElement) => {
+        //     thinTool.classList.remove('selectedTool');
+        //     thickTool.classList.remove('selectedTool');
+        //     selectedTool.classList.add('selectedTool');
+        // };
 
+        // updateToolSelection(thinTool);
         // Start drawing
         canvas.addEventListener('mousedown', (event) => {
             const rect = canvas.getBoundingClientRect();
@@ -66,20 +104,25 @@ globalThis.onload = () => {
             currentLine = new Liner(startX, startY, currentToolThickness);  // Start a new line
             //addPointToLine(event);
             redoStack.splice(0, redoStack.length);
+            toolPreview = null;
             canvas.dispatchEvent(drawingChangedEvent);
 
         });
 
         // Draw line as the mouse moves
         canvas.addEventListener('mousemove', (event) => {
-            if (isDrawing && currentLine) {
+
                 const rect = canvas.getBoundingClientRect();
                 const newX = event.clientX - rect.left;
                 const newY = event.clientY - rect.top;
+            if (isDrawing && currentLine) {
                 currentLine.drag(newX, newY);
                 //addPointToLine(event);
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
                 
+            } else if (!isDrawing && toolPreview) {
+                toolPreview.move(newX, newY); // Update tool preview position
+                canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event
             }
         });
         const updateToolSelection = (selectedTool: HTMLButtonElement) => {
@@ -90,11 +133,13 @@ globalThis.onload = () => {
         updateToolSelection(thinTool);
         thinTool.addEventListener('click', () => {
             currentToolThickness = 2; // Thin marker
+            toolPreview = new ToolPreview(currentToolThickness); // Update preview thickness
             updateToolSelection(thinTool);
         });
     
         thickTool.addEventListener('click', () => {
             currentToolThickness = 6; // Thick marker
+            toolPreview = new ToolPreview(currentToolThickness); // Update preview thickness
             updateToolSelection(thickTool);
         });
          // Stop drawing when mouse is released
@@ -103,6 +148,7 @@ globalThis.onload = () => {
             if (isDrawing && currentLine) {
                 lines.push(currentLine);  // Save the line
                 currentLine = null;
+                toolPreview = new ToolPreview(currentToolThickness); // Show tool preview after drawing
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
             }
             isDrawing = false;
@@ -184,6 +230,31 @@ globalThis.onload = () => {
                 }
             }
         });
+        const redrawCanvas = () => {
+            if (ctx) {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+                // Redraw all the saved lines
+                for (const line of lines) {
+                    line.display(ctx); // Display each MarkerLine
+                }
+    
+                // If a current line is being drawn, display it too
+                if (currentLine) {
+                    currentLine.display(ctx);
+                }
+    
+                // Draw the tool preview if not drawing
+                if (!isDrawing && toolPreview) {
+                    toolPreview.draw(ctx);
+                }
+            }
+        };
+    
+        canvas.addEventListener('drawing-changed', redrawCanvas);
+        canvas.addEventListener('tool-moved', redrawCanvas);
+    
         // const drawLine = (line: { x: number; y: number }[]) => {
         //     if (line.length > 0 && ctx) {
         //         ctx.beginPath();
