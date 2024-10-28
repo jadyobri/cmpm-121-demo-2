@@ -2,14 +2,15 @@ import "./style.css";
 
 const APP_NAME = "Project 2";
 const app = document.querySelector<HTMLDivElement>("#app")!;
-// interface Sticker {
+// interface pin {
 //     emoji: string;
 //     label: string;
 // }
-
+const thinBrushThickness = 4;  // Previously 2
+const thickBrushThickness = 10; // Previously 6
 let mouseX = 0;
 let mouseY = 0;
-class StickerPreview {
+class PinPreview {
     private x: number;
     private y: number;
     private emoji: string;
@@ -26,14 +27,14 @@ class StickerPreview {
         this.y = y;
     }
 
-    // Draw preview of the sticker at the mouse position
+    // Draw preview of the pin at the mouse position
     draw(ctx: CanvasRenderingContext2D) {
         ctx.font = "24px serif";
         ctx.fillText(this.emoji, this.x, this.y);
     }
 }
 
-class Sticker {
+class Pin{
     private x: number;
     private y: number;
     private emoji: string;
@@ -48,7 +49,7 @@ class Sticker {
         this.y = y;
     }
 
-    // Display the sticker on the canvas
+    // Display the Pin on the canvas
     display(ctx: CanvasRenderingContext2D) {
         ctx.font = "24px serif";
         ctx.fillText(this.emoji, this.x, this.y);
@@ -119,13 +120,13 @@ globalThis.onload = () => {
     //canvas.style.position(50, 50);
     const thinTool = document.getElementById('thinTool') as HTMLButtonElement;
     const thickTool = document.getElementById('thickTool') as HTMLButtonElement;
-    //const checkSticker = document.getElementById('checkSticker') as HTMLButtonElement;
-    //const fireSticker = document.getElementById('fireSticker') as HTMLButtonElement;
-    //const pumpkinSticker = document.getElementById('pumpkinSticker') as HTMLButtonElement;
-    const customStickerButton = document.getElementById('customStickerButton') as HTMLButtonElement;
-    const stickerButtonsContainer = document.getElementById('stickerButtons') as HTMLDivElement;
+    //const checkpin = document.getElementById('checkpin') as HTMLButtonElement;
+    //const firepin = document.getElementById('firepin') as HTMLButtonElement;
+    //const pumpkinpin = document.getElementById('pumpkinpin') as HTMLButtonElement;
+    const customPinButton = document.getElementById('customPinButton') as HTMLButtonElement;
+    const PinButtonsContainer = document.getElementById('PinButtons') as HTMLDivElement;
     const exportButton = document.getElementById("exportButton") as HTMLButtonElement;
-    //const stickerButtonsContainer = document.getElementById('stickerButtons') as HTMLDivElement;
+    //const PinButtonsContainer = document.getElementById('PinButtons') as HTMLDivElement;
     const clearButton = document.getElementById('clearButton') as HTMLButtonElement;
     if (appTitle) {
         appTitle.textContent = "My Awesome App";
@@ -135,12 +136,12 @@ globalThis.onload = () => {
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
         let currentLine: Liner | null = null;//{ x: number; y: number }[] = [];
-        let lines: (Liner | Sticker)[] = [];//{ x: number; y: number }[][] = [];
-        let redoStack: (Liner | Sticker)[] = [];//{ x: number; y: number }[][] = [];
+        let lines: (Liner | Pin)[] = [];//{ x: number; y: number }[][] = [];
+        let redoStack: (Liner | Pin)[] = [];//{ x: number; y: number }[][] = [];
        // const undoLines: { x: number; y: number }[][] = [];
        let toolPreview: ToolPreview | null = new ToolPreview(currentToolThickness); // Initialize tool preview
-       let stickerPreview: StickerPreview | null = null;
-       let selectedSticker: string | null = null;
+       let pinPreview: PinPreview | null = null;
+       let selectedPin: string | null = null;
         const drawingChangedEvent = new Event('drawing-changed');
         const toolMovedEvent = new Event('tool-moved');
         // const updateToolSelection = (selectedTool: HTMLButtonElement) => {
@@ -150,10 +151,13 @@ globalThis.onload = () => {
         // };
 
         // updateToolSelection(thinTool);
-        const stickers = [
+        const pins = [
             { emoji: "✅", label: "Check"},
             { emoji: "🔥", label: "Fire" },
-            { emoji: "🎃", label: "Pumpkin" }
+            { emoji: "🎃", label: "Pumpkin" },
+            { emoji: "🥇", label: "Medal"},
+            { emoji: "👍", label: "Thumbs Up"},
+            { emoji: "⭐️", label: "Star" }
         ];
 
         // Start drawing
@@ -169,12 +173,12 @@ globalThis.onload = () => {
             redoStack.splice(0, redoStack.length);
             toolPreview = null;
             canvas.dispatchEvent(drawingChangedEvent);
-            if (selectedSticker && stickerPreview) {
-                // Place a sticker
-                const sticker = new Sticker(startX, startY, selectedSticker);
-                lines.push(sticker);
+            if (selectedPin && pinPreview) {
+                // Place a pin
+                const pin = new Pin(startX, startY, selectedPin);
+                lines.push(pin);
                 redoStack = [];
-                stickerPreview = new StickerPreview(selectedSticker);
+                pinPreview = new PinPreview(selectedPin);
                 canvas.dispatchEvent(drawingChangedEvent);
             } else {
                 // Draw a line
@@ -202,12 +206,12 @@ globalThis.onload = () => {
                 
             } else if (!isDrawing && toolPreview) {
                 if(toolPreview) toolPreview.move(newX, newY); // Update tool preview position
-                if(stickerPreview) stickerPreview.move(newX, newY);
+                if(pinPreview) pinPreview.move(newX, newY);
                 canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event
             }
         });
         const updateToolSelection = (selectedTool: HTMLButtonElement) => {
-            const buttons = Array.from(stickerButtonsContainer.children) as HTMLElement[];
+            const buttons = Array.from(PinButtonsContainer.children) as HTMLElement[];
             [thinTool, thickTool, ...buttons].forEach(button => {
                 button.classList.remove('selectedTool');
             });
@@ -217,57 +221,57 @@ globalThis.onload = () => {
         };
         updateToolSelection(thinTool);
         thinTool.addEventListener('click', () => {
-            currentToolThickness = 2; // Thin marker
+            currentToolThickness = thinBrushThickness; // Thin marker
             toolPreview = new ToolPreview(currentToolThickness); // Update preview thickness
-            stickerPreview = null;
-            selectedSticker = null;
+            pinPreview = null;
+            selectedPin = null;
             updateToolSelection(thinTool);
         });
         
         thickTool.addEventListener('click', () => {
-            currentToolThickness = 6; // Thick marker
+            currentToolThickness = thickBrushThickness; // Thick marker
             toolPreview = new ToolPreview(currentToolThickness); // Update preview thickness
-            stickerPreview = null;
-            selectedSticker = null;    
+            pinPreview = null;
+            selectedPin = null;    
             updateToolSelection(thickTool);
         });
-        const createStickerButton = (sticker: {emoji: string; label: string}) => {
+        const createPinButton = (Pin: {emoji: string; label: string}) => {
             const button = document.createElement("button");
-            button.textContent = sticker.emoji + " " + sticker.label;
-            button.addEventListener("click", () => selectSticker(sticker.emoji, button));
-            stickerButtonsContainer.appendChild(button);
+            button.textContent = Pin.emoji + " " + Pin.label;
+            button.addEventListener("click", () => selectPin(Pin.emoji, button));
+            PinButtonsContainer.appendChild(button);
         };
-        customStickerButton.addEventListener("click", () => {
-            const emoji = prompt("Enter an emoji for your custom sticker:", "😊");
+        customPinButton.addEventListener("click", () => {
+            const emoji = prompt("Enter an emoji for your custom Pin:", "😊");
             if (emoji) {
-                const newSticker = { emoji: emoji, label: "Custom" };
-                stickers.push(newSticker); // Add to stickers array
-                createStickerButton(newSticker); // Generate button for new sticker
+                const newPin = { emoji: emoji, label: "Custom" };
+                pins.push(newPin); // Add to Pins array
+                createPinButton(newPin); // Generate button for new Pin
             }
         });
     
-        // Loop through the stickers array to generate initial buttons
-        stickers.forEach(sticker => createStickerButton(sticker));
+        // Loop through the Pins array to generate initial buttons
+        pins.forEach(Pin => createPinButton(Pin));
 
-        const selectSticker = (emoji: string, button: HTMLButtonElement) => {
-            selectedSticker = emoji;
-            stickerPreview = new StickerPreview(emoji);
+        const selectPin = (emoji: string, button: HTMLButtonElement) => {
+            selectedPin = emoji;
+            pinPreview = new PinPreview(emoji);
             toolPreview = null;
             updateToolSelection(button);
-            if (stickerPreview) stickerPreview.move(mouseX, mouseY);
+            if (pinPreview) pinPreview.move(mouseX, mouseY);
             canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event to update preview
         };
-        customStickerButton.addEventListener("click", () => {
-            const emoji = prompt("Enter an emoji for a custom sticker:", "😊");
+        customPinButton.addEventListener("click", () => {
+            const emoji = prompt("Enter an emoji for a custom Pin:", "😊");
             if (emoji) {
-                const newSticker = { emoji: emoji, label: "Custom" };
-                stickers.push(newSticker); // Add to stickers array
-                createStickerButton(newSticker); // Generate button for new sticker
+                const newPin = { emoji: emoji, label: "Custom" };
+                pins.push(newPin); // Add to Pins array
+                createPinButton(newPin); // Generate button for new Pin
             }
         });
-      //  checkSticker.addEventListener('click', () => selectSticker("✅", checkSticker));
-        //fireSticker.addEventListener('click', () => selectSticker("🔥", fireSticker));
-        //pumpkinSticker.addEventListener('click', () => selectSticker("🎃", pumpkinSticker));
+      //  checkPin.addEventListener('click', () => selectPin("✅", checkPin));
+        //firePin.addEventListener('click', () => selectPin("🔥", firePin));
+        //pumpkinPin.addEventListener('click', () => selectPin("🎃", pumpkinPin));
 
          // Stop drawing when mouse is released
          canvas.addEventListener('mouseup', () => {
@@ -376,8 +380,8 @@ globalThis.onload = () => {
                 if (!isDrawing && toolPreview) {
                     toolPreview.draw(ctx);
                 }
-                if(!isDrawing && stickerPreview){
-                    stickerPreview.draw(ctx);
+                if(!isDrawing && pinPreview){
+                    pinPreview.draw(ctx);
                 }
             }
         };
@@ -409,7 +413,7 @@ globalThis.onload = () => {
         
             // Step 3: Render each item in the display list on the scaled canvas
             for (const item of lines) {
-                item.display(exportCtx); // Use display method to draw each line or sticker
+                item.display(exportCtx); // Use display method to draw each line or Pin
             }
         
             // Step 4: Convert the canvas to a data URL and trigger a download
