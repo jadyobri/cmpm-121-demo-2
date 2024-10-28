@@ -2,6 +2,13 @@ import "./style.css";
 
 const APP_NAME = "Project 2";
 const app = document.querySelector<HTMLDivElement>("#app")!;
+// interface Sticker {
+//     emoji: string;
+//     label: string;
+// }
+
+let mouseX = 0;
+let mouseY = 0;
 class StickerPreview {
     private x: number;
     private y: number;
@@ -112,10 +119,13 @@ globalThis.onload = () => {
     //canvas.style.position(50, 50);
     const thinTool = document.getElementById('thinTool') as HTMLButtonElement;
     const thickTool = document.getElementById('thickTool') as HTMLButtonElement;
-    const checkSticker = document.getElementById('checkSticker') as HTMLButtonElement;
-    const fireSticker = document.getElementById('fireSticker') as HTMLButtonElement;
-    const pumpkinSticker = document.getElementById('pumpkinSticker') as HTMLButtonElement;
-
+    //const checkSticker = document.getElementById('checkSticker') as HTMLButtonElement;
+    //const fireSticker = document.getElementById('fireSticker') as HTMLButtonElement;
+    //const pumpkinSticker = document.getElementById('pumpkinSticker') as HTMLButtonElement;
+    const customStickerButton = document.getElementById('customStickerButton') as HTMLButtonElement;
+    const stickerButtonsContainer = document.getElementById('stickerButtons') as HTMLDivElement;
+    const exportButton = document.getElementById("exportButton") as HTMLButtonElement;
+    //const stickerButtonsContainer = document.getElementById('stickerButtons') as HTMLDivElement;
     const clearButton = document.getElementById('clearButton') as HTMLButtonElement;
     if (appTitle) {
         appTitle.textContent = "My Awesome App";
@@ -140,12 +150,18 @@ globalThis.onload = () => {
         // };
 
         // updateToolSelection(thinTool);
+        const stickers = [
+            { emoji: "✅", label: "Check"},
+            { emoji: "🔥", label: "Fire" },
+            { emoji: "🎃", label: "Pumpkin" }
+        ];
+
         // Start drawing
         canvas.addEventListener('mousedown', (event) => {
             const rect = canvas.getBoundingClientRect();
             const startX = event.clientX - rect.left;
             const startY = event.clientY - rect.top;
-            isDrawing = true;
+            //isDrawing = true;
             // const startX = event.clientX - rect.left;
             // const startY = event.clientY - rect.top;
             currentLine = new Liner(startX, startY, currentToolThickness);  // Start a new line
@@ -177,6 +193,8 @@ globalThis.onload = () => {
                 const rect = canvas.getBoundingClientRect();
                 const newX = event.clientX - rect.left;
                 const newY = event.clientY - rect.top;
+                mouseX = newX;
+                mouseY = newY;
             if (isDrawing && currentLine) {
                 currentLine.drag(newX, newY);
                 //addPointToLine(event);
@@ -189,7 +207,8 @@ globalThis.onload = () => {
             }
         });
         const updateToolSelection = (selectedTool: HTMLButtonElement) => {
-            [thinTool, thickTool, checkSticker, fireSticker, pumpkinSticker].forEach(button => {
+            const buttons = Array.from(stickerButtonsContainer.children) as HTMLElement[];
+            [thinTool, thickTool, ...buttons].forEach(button => {
                 button.classList.remove('selectedTool');
             });
             // thinTool.classList.remove('selectedTool');
@@ -212,16 +231,43 @@ globalThis.onload = () => {
             selectedSticker = null;    
             updateToolSelection(thickTool);
         });
+        const createStickerButton = (sticker: {emoji: string; label: string}) => {
+            const button = document.createElement("button");
+            button.textContent = sticker.emoji + " " + sticker.label;
+            button.addEventListener("click", () => selectSticker(sticker.emoji, button));
+            stickerButtonsContainer.appendChild(button);
+        };
+        customStickerButton.addEventListener("click", () => {
+            const emoji = prompt("Enter an emoji for your custom sticker:", "😊");
+            if (emoji) {
+                const newSticker = { emoji: emoji, label: "Custom" };
+                stickers.push(newSticker); // Add to stickers array
+                createStickerButton(newSticker); // Generate button for new sticker
+            }
+        });
+    
+        // Loop through the stickers array to generate initial buttons
+        stickers.forEach(sticker => createStickerButton(sticker));
+
         const selectSticker = (emoji: string, button: HTMLButtonElement) => {
             selectedSticker = emoji;
             stickerPreview = new StickerPreview(emoji);
             toolPreview = null;
             updateToolSelection(button);
+            if (stickerPreview) stickerPreview.move(mouseX, mouseY);
             canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event to update preview
         };
-        checkSticker.addEventListener('click', () => selectSticker("✅", checkSticker));
-        fireSticker.addEventListener('click', () => selectSticker("🔥", fireSticker));
-        pumpkinSticker.addEventListener('click', () => selectSticker("🎃", pumpkinSticker));
+        customStickerButton.addEventListener("click", () => {
+            const emoji = prompt("Enter an emoji for a custom sticker:", "😊");
+            if (emoji) {
+                const newSticker = { emoji: emoji, label: "Custom" };
+                stickers.push(newSticker); // Add to stickers array
+                createStickerButton(newSticker); // Generate button for new sticker
+            }
+        });
+      //  checkSticker.addEventListener('click', () => selectSticker("✅", checkSticker));
+        //fireSticker.addEventListener('click', () => selectSticker("🔥", fireSticker));
+        //pumpkinSticker.addEventListener('click', () => selectSticker("🎃", pumpkinSticker));
 
          // Stop drawing when mouse is released
          canvas.addEventListener('mouseup', () => {
@@ -349,9 +395,47 @@ globalThis.onload = () => {
         //         ctx.stroke();
         //     }
         // };
+        const exportCanvas = () => {
+            // Step 1: Create a temporary 1024x1024 canvas
+            const exportCanvas = document.createElement("canvas");
+            exportCanvas.width = 1024;
+            exportCanvas.height = 1024;
+            const exportCtx = exportCanvas.getContext("2d");
+        
+            if (!exportCtx) return; // Ensure the context is available
+        
+            // Step 2: Scale the context to enlarge the drawing by 4x
+            exportCtx.scale(4, 4); // Scale from 256x256 to 1024x1024
+        
+            // Step 3: Render each item in the display list on the scaled canvas
+            for (const item of lines) {
+                item.display(exportCtx); // Use display method to draw each line or sticker
+            }
+        
+            // Step 4: Convert the canvas to a data URL and trigger a download
+            exportCanvas.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "canvas_export.png";
+                    a.click();
+                    URL.revokeObjectURL(url); // Clean up
+                }
+            }, "image/png");
+        };
+        
+        // Attach the export function to the export button
+        exportButton.addEventListener("click", exportCanvas);
     }
+    // Get the export button element
+
+
+// Function to handle exporting the canvas
+
 
 };
+
 
 document.title = APP_NAME;
 app.innerHTML = APP_NAME;
