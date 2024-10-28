@@ -431,7 +431,7 @@ globalThis.onload = () => {
     // Get the export button element
 
 
-// Function to handle exporting the canvas
+
 
 
 };
