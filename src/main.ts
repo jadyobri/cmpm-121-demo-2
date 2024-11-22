@@ -1,7 +1,8 @@
 import "./style.css";
 
-const APP_NAME = "Project 2";
+const APP_NAME = "Project 2"; 
 const app = document.querySelector<HTMLDivElement>("#app")!;
+
 // interface pin {
 //     emoji: string;
 //     label: string;
@@ -154,7 +155,7 @@ globalThis.onload = () => {
    const toolSlider = document.getElementById("toolSlider") as HTMLInputElement;
 let currentHue = 0; // Default color hue for brushes
 let currentRotation = 0; // Default rotation angle for stamps
-    const appTitle = document.getElementById('app-title');
+    const appTitle = document.getElementById('app-title'); 
     const canvas = document.getElementById('myCanvas') as HTMLCanvasElement;
     //canvas.style.position(50, 50);
     const thinTool = document.getElementById('thinTool') as HTMLButtonElement;
@@ -291,9 +292,16 @@ let currentRotation = 0; // Default rotation angle for stamps
             if (emoji) {
                 const newPin = { emoji: emoji, label: "Custom" };
                 pins.push(newPin); // Add to Pins array
-                createPinButton(newPin); // Generate button for new Pin
+                createPinButton(newPin); // Generate button for new Pin 
+                
+                selectedPin = emoji;
+                pinPreview = new PinPreview(emoji, currentRotation);
+                updateToolSelection(customPinButton); 
+                if (pinPreview) pinPreview.move(mouseX, mouseY);
+                canvas.dispatchEvent(toolMovedEvent); 
             }
         });
+        
     
         // Loop through the Pins array to generate initial buttons
         pins.forEach(pin => createPinButton(pin));
