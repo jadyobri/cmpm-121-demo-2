@@ -3,14 +3,11 @@ import "./style.css";
 const APP_NAME = "Project 2"; 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
-// interface pin {
-//     emoji: string;
-//     label: string;
-// }
 const thinBrushThickness = 4;  // Previously 2
 const thickBrushThickness = 10; // Previously 6
 let mouseX = 0;
 let mouseY = 0;
+
 class PinPreview {
     private x: number;
     private y: number;
@@ -130,7 +127,6 @@ class Liner{
 
     drag(x: number, y:number){
         this.points.push({x, y});
-       // this.thickn = thickn;
     }
     setColorHue(hue: number) {
         this.colorHue = hue;
@@ -152,21 +148,16 @@ class Liner{
 
 //Used help from generative AI in the process
 globalThis.onload = () => {
-   const toolSlider = document.getElementById("toolSlider") as HTMLInputElement;
-let currentHue = 0; // Default color hue for brushes
-let currentRotation = 0; // Default rotation angle for stamps
+   const toolSlider = document.getElementById("toolSlider") as HTMLInputElement; // Get the slider element
+    let currentHue = 0; // Default color hue for brushes
+    let currentRotation = 0; // Default rotation angle for stamps
     const appTitle = document.getElementById('app-title'); 
     const canvas = document.getElementById('myCanvas') as HTMLCanvasElement;
-    //canvas.style.position(50, 50);
     const thinTool = document.getElementById('thinTool') as HTMLButtonElement;
     const thickTool = document.getElementById('thickTool') as HTMLButtonElement;
-    //const checkpin = document.getElementById('checkpin') as HTMLButtonElement;
-    //const firepin = document.getElementById('firepin') as HTMLButtonElement;
-    //const pumpkinpin = document.getElementById('pumpkinpin') as HTMLButtonElement;
     const customPinButton = document.getElementById('customPinButton') as HTMLButtonElement;
     const pinButtonsContainer = document.getElementById('pinButtons') as HTMLDivElement;
-    const exportButton = document.getElementById("exportButton") as HTMLButtonElement;
-    //const PinButtonsContainer = document.getElementById('PinButtons') as HTMLDivElement;
+    const exportButton = document.getElementById("exportButton") as HTMLButtonElement; // Get the export button element
     const clearButton = document.getElementById('clearButton') as HTMLButtonElement;
     if (appTitle) {
         appTitle.textContent = "My Awesome App";
@@ -175,22 +166,15 @@ let currentRotation = 0; // Default rotation angle for stamps
         let currentToolThickness = 4;
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
-        let currentLine: Liner | null = null;//{ x: number; y: number }[] = [];
-        let lines: (Liner | Pin)[] = [];//{ x: number; y: number }[][] = [];
-        let redoStack: (Liner | Pin)[] = [];//{ x: number; y: number }[][] = [];
-       // const undoLines: { x: number; y: number }[][] = [];
-       let toolPreview: ToolPreview | null = new ToolPreview(currentToolThickness, currentHue); // Initialize tool preview
-       let pinPreview: PinPreview | null = null;
-       let selectedPin: string | null = null;
+        let currentLine: Liner | null = null;
+        let lines: (Liner | Pin)[] = [];
+        let redoStack: (Liner | Pin)[] = [];
+        let toolPreview: ToolPreview | null = new ToolPreview(currentToolThickness, currentHue); // Initialize tool preview
+        let pinPreview: PinPreview | null = null;
+        let selectedPin: string | null = null;
         const drawingChangedEvent = new Event('drawing-changed');
         const toolMovedEvent = new Event('tool-moved');
-        // const updateToolSelection = (selectedTool: HTMLButtonElement) => {
-        //     thinTool.classList.remove('selectedTool');
-        //     thickTool.classList.remove('selectedTool');
-        //     selectedTool.classList.add('selectedTool');
-        // };
 
-        // updateToolSelection(thinTool);
         const pins = [
             { emoji: "✅", label: "Check"},
             { emoji: "🔥", label: "Fire" },
@@ -205,11 +189,7 @@ let currentRotation = 0; // Default rotation angle for stamps
             const rect = canvas.getBoundingClientRect();
             const startX = event.clientX - rect.left;
             const startY = event.clientY - rect.top;
-            //isDrawing = true;
-            // const startX = event.clientX - rect.left;
-            // const startY = event.clientY - rect.top;
             currentLine = new Liner(startX, startY, currentToolThickness, currentHue);  // Start a new line
-            //addPointToLine(event);
             redoStack.splice(0, redoStack.length);
             toolPreview = null;
             canvas.dispatchEvent(drawingChangedEvent);
@@ -228,44 +208,46 @@ let currentRotation = 0; // Default rotation angle for stamps
                 toolPreview = null;
                 canvas.dispatchEvent(drawingChangedEvent);
             }
-
         });
 
         // Draw line as the mouse moves
         canvas.addEventListener('mousemove', (event) => {
-
-                const rect = canvas.getBoundingClientRect();
-                const newX = event.clientX - rect.left;
-                const newY = event.clientY - rect.top;
-                mouseX = newX;
-                mouseY = newY;
+            const rect = canvas.getBoundingClientRect();
+            const newX = event.clientX - rect.left;
+            const newY = event.clientY - rect.top;
+            mouseX = newX;
+            mouseY = newY;
             if (isDrawing && currentLine) {
                 currentLine.drag(newX, newY);
-                //addPointToLine(event);
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
                 
             } else if (!isDrawing){
                 if (pinPreview && selectedPin) {
                     pinPreview.move(newX, newY);  // Update preview position
                     canvas.dispatchEvent(toolMovedEvent); // Trigger preview render
-                }
-                if(toolPreview) {
+                } if(toolPreview) {
                     if(toolPreview) toolPreview.move(newX, newY); // Update tool preview position
                     if(pinPreview) pinPreview.move(newX, newY);
                     canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event
                 }
             } 
         });
-        const updateToolSelection = (selectedTool: HTMLButtonElement) => {
-            const buttons = Array.from(pinButtonsContainer.children) as HTMLElement[];
-            [thinTool, thickTool, ...buttons].forEach(button => {
-                button.classList.remove('selectedTool');
-            });
-            // thinTool.classList.remove('selectedTool');
-            // thickTool.classList.remove('selectedTool');
-            selectedTool.classList.add('selectedTool');
-        };
-        updateToolSelection(thinTool);
+
+        customPinButton.addEventListener("click", () => {
+            const emoji = prompt("Enter an emoji for your custom Pin:", "😊");
+            if (emoji) {
+                const newPin = { emoji: emoji, label: "Custom" };
+                pins.push(newPin); // Add to Pins array
+                createPinButton(newPin); // Generate button for new Pin 
+                
+                selectedPin = emoji;
+                pinPreview = new PinPreview(emoji, currentRotation);
+                updateToolSelection(customPinButton); 
+                if (pinPreview) pinPreview.move(mouseX, mouseY);
+                canvas.dispatchEvent(toolMovedEvent); 
+            }
+        });
+
         thinTool.addEventListener('click', () => {
             currentToolThickness = thinBrushThickness; // Thin marker
             toolPreview = new ToolPreview(currentToolThickness, currentHue); // Update preview thickness
@@ -281,55 +263,9 @@ let currentRotation = 0; // Default rotation angle for stamps
             selectedPin = null;    
             updateToolSelection(thickTool);
         });
-        const createPinButton = (pin: {emoji: string; label: string}) => {
-            const button = document.createElement("button");
-            button.textContent = pin.emoji + " " + pin.label;
-            button.addEventListener("click", () => selectPin(pin.emoji, button));
-            pinButtonsContainer.appendChild(button);
-        };
-        customPinButton.addEventListener("click", () => {
-            const emoji = prompt("Enter an emoji for your custom Pin:", "😊");
-            if (emoji) {
-                const newPin = { emoji: emoji, label: "Custom" };
-                pins.push(newPin); // Add to Pins array
-                createPinButton(newPin); // Generate button for new Pin 
-                
-                selectedPin = emoji;
-                pinPreview = new PinPreview(emoji, currentRotation);
-                updateToolSelection(customPinButton); 
-                if (pinPreview) pinPreview.move(mouseX, mouseY);
-                canvas.dispatchEvent(toolMovedEvent); 
-            }
-        });
-        
-    
-        // Loop through the Pins array to generate initial buttons
-        pins.forEach(pin => createPinButton(pin));
 
-        const selectPin = (emoji: string, button: HTMLButtonElement) => {
-            selectedPin = emoji;
-            //isDrawing = false;
-            pinPreview = new PinPreview(emoji, currentRotation);
-            toolPreview = null;
-            updateToolSelection(button);
-            if (pinPreview) pinPreview.move(mouseX, mouseY);
-            canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event to update preview
-        };
-        // customPinButton.addEventListener("click", () => {
-        //     const emoji = prompt("Enter an emoji for a custom Pin:", "😊");
-        //     if (emoji) {
-        //         const newPin = { emoji: emoji, label: "Custom" };
-        //         pins.push(newPin); // Add to Pins array
-        //         createPinButton(newPin); // Generate button for new Pin
-        //     }
-        // });
-      //  checkPin.addEventListener('click', () => selectPin("✅", checkPin));
-        //firePin.addEventListener('click', () => selectPin("🔥", firePin));
-        //pumpkinPin.addEventListener('click', () => selectPin("🎃", pumpkinPin));
-
-         // Stop drawing when mouse is released
-         canvas.addEventListener('mouseup', () => {
-            //isDrawing = false;
+        // Stop drawing when mouse is released
+        canvas.addEventListener('mouseup', () => {
             if (isDrawing && currentLine) {
                 lines.push(currentLine);  // Save the line
                 currentLine = null;
@@ -337,11 +273,83 @@ let currentRotation = 0; // Default rotation angle for stamps
                 canvas.dispatchEvent(drawingChangedEvent); // Trigger drawing change
             }
             isDrawing = false;
-
         });
+        
+        // Stop drawing if the mouse leaves the canvas
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+
+        // Clear the canvas when the clear button is clicked
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                lines = [];
+                redoStack = [];
+                if (ctx) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                canvas.dispatchEvent(drawingChangedEvent);  // Trigger drawing change
+            });
+        }
+
+        canvas.addEventListener('drawing-changed', () => {
+            if (ctx) {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Redraw all the saved lines
+                for (const line of lines) {
+                    line.display(ctx);
+                }
+
+                // Draw the current line if it's being drawn
+                if (currentLine) {
+                    currentLine.display(ctx);
+                }
+            }
+        });
+
+        // Update slider value handler
+        toolSlider.addEventListener("input", (event) => {
+            const value = parseInt(toolSlider.value, 10);
+            if (selectedPin) {
+            currentRotation = value; // For stamps, set rotation
+            if (pinPreview) pinPreview.setRotation(currentRotation);
+            } else {
+                currentHue = value; // For brushes, set color hue
+                if (toolPreview) toolPreview.setColorHue(currentHue);
+            }
+            canvas.dispatchEvent(toolMovedEvent); // Update preview with new properties
+        });
+
+        const updateToolSelection = (selectedTool: HTMLButtonElement) => {
+            const buttons = Array.from(pinButtonsContainer.children) as HTMLElement[];
+            [thinTool, thickTool, ...buttons].forEach(button => {
+                button.classList.remove('selectedTool');
+            });
+            selectedTool.classList.add('selectedTool');
+        };
+
+        const createPinButton = (pin: {emoji: string; label: string}) => {
+            const button = document.createElement("button");
+            button.textContent = pin.emoji + " " + pin.label;
+            button.addEventListener("click", () => selectPin(pin.emoji, button));
+            pinButtonsContainer.appendChild(button);
+        };
+        // Loop through the Pins array to generate initial buttons
+        
+
+        const selectPin = (emoji: string, button: HTMLButtonElement) => {
+            selectedPin = emoji;
+            pinPreview = new PinPreview(emoji, currentRotation);
+            toolPreview = null;
+            updateToolSelection(button);
+            if (pinPreview) pinPreview.move(mouseX, mouseY);
+            canvas.dispatchEvent(toolMovedEvent); // Trigger tool-moved event to update preview
+        };
+
         //Help from the https://quant-paint.glitch.me/paint1.html
         const undoButton = document.getElementById("undoButton") as HTMLButtonElement;
-       // undoButton.innerHTML = "undo";
         document.body.appendChild(undoButton);
         //Help also from generative AI
         undoButton.addEventListener("click", () => {
@@ -349,12 +357,10 @@ let currentRotation = 0; // Default rotation angle for stamps
                 const lastLine = lines.pop();
             if(lastLine){
                 redoStack.push(lastLine);
-                //currentLine = [];
             }
             canvas.dispatchEvent(drawingChangedEvent);
             }
         });
-        
 
         const redoButton = document.getElementById('redoButton') as HTMLButtonElement;
         redoButton.innerHTML = "redo";
@@ -366,55 +372,9 @@ let currentRotation = 0; // Default rotation angle for stamps
                     lines.push(lastUndoneLine);
                 }
                 canvas.dispatchEvent(drawingChangedEvent);
-                //lines.push(redoStack[redoStack.length-1]);
-                //redoStack[redoStack.length-1].pop();
-                //drawLine(lines[lines.length-1])
             }
         });
 
-        // Stop drawing if the mouse leaves the canvas
-        canvas.addEventListener('mouseleave', () => {
-            isDrawing = false;
-        });
-
-        // Clear the canvas when the clear button is clicked
-        if (clearButton) {
-            clearButton.addEventListener('click', () => {
-                lines = [];
-                //currentLine = [];
-                redoStack = [];
-                if (ctx) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                }
-                canvas.dispatchEvent(drawingChangedEvent);  // Trigger drawing change
-            });
-        }
-        // const addPointToLine = (event: MouseEvent) => {
-        //     const rect = canvas.getBoundingClientRect();
-        //     currentLine.push({
-        //         x: event.clientX - rect.left,
-        //         y: event.clientY - rect.top,
-        //     });
-        // };
-        canvas.addEventListener('drawing-changed', () => {
-
-            if (ctx) {
-                // Clear the canvas
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Redraw all the saved lines
-                for (const line of lines) {
-                    line.display(ctx);
-                    //drawLine(line);
-                }
-
-                // Draw the current line if it's being drawn
-                if (currentLine) {
-                    currentLine.display(ctx);
-                    //drawLine(currentLine);
-                }
-            }
-        });
         const redrawCanvas = () => {
             if (ctx) {
                 // Clear the canvas
@@ -439,34 +399,8 @@ let currentRotation = 0; // Default rotation angle for stamps
                 }
             }
         };
-        // Get the slider element
+        
 
-
-// Update slider value handler
-toolSlider.addEventListener("input", (event) => {
-    const value = parseInt(toolSlider.value, 10);
-    if (selectedPin) {
-       currentRotation = value; // For stamps, set rotation
-       if (pinPreview) pinPreview.setRotation(currentRotation);
-    } else {
-        currentHue = value; // For brushes, set color hue
-        if (toolPreview) toolPreview.setColorHue(currentHue);
-    }
-    canvas.dispatchEvent(toolMovedEvent); // Update preview with new properties
-});
-        canvas.addEventListener('drawing-changed', redrawCanvas);
-        canvas.addEventListener('tool-moved', redrawCanvas);
-    
-        // const drawLine = (line: { x: number; y: number }[]) => {
-        //     if (line.length > 0 && ctx) {
-        //         ctx.beginPath();
-        //         ctx.moveTo(line[0].x, line[0].y);
-        //         for (let i = 1; i < line.length; i++) {
-        //             ctx.lineTo(line[i].x, line[i].y);
-        //         }
-        //         ctx.stroke();
-        //     }
-        // };
         const exportCanvas = () => {
             // Step 1: Create a temporary 1024x1024 canvas
             const exportCanvas = document.createElement("canvas");
@@ -496,17 +430,15 @@ toolSlider.addEventListener("input", (event) => {
                 }
             }, "image/png");
         };
-        
+
+        updateToolSelection(thinTool);
+        canvas.addEventListener('drawing-changed', redrawCanvas);
+        canvas.addEventListener('tool-moved', redrawCanvas);
+
         // Attach the export function to the export button
         exportButton.addEventListener("click", exportCanvas);
-    }
-    // Get the export button element
-
-
-
-
-
-};
+        pins.forEach(pin => createPinButton(pin));
+}};
 
 
 document.title = APP_NAME;
