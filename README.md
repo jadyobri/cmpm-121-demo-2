@@ -1,1 +1,1 @@
-A cookie clicker, but with emojis instead.
+Drawing application for the web.
